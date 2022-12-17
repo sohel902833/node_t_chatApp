@@ -4,7 +4,8 @@ import { authGard } from "../middlewares/authGard";
 
 export const router = Router();
 router.post("/", authGard(), conversationController.createConversation);
-router.get("/", authGard(), conversationController.getMyConversations);
+router.get("/", authGard(), conversationController.getMyConversationsV2);
+router.get("/v2", authGard(), conversationController.getMyConversationsV2);
 router.get(
   "/message/:conversationId",
   authGard(),

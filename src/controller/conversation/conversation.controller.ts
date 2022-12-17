@@ -3,6 +3,7 @@ import { USER_MODEL_NAME } from "../../models/modelConfig";
 import {
   getConversation,
   getMessage,
+  getMyConversationsWithUnreadCount,
   insertConversation,
   insertMessage,
   setLastMessageInConversation,
@@ -117,6 +118,33 @@ export const getMyConversations = async (
   }
 };
 
+export const getMyConversationsV2 = async (
+  req: IRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.userId;
+    const conversations = await getMyConversationsWithUnreadCount(
+      userId as string
+    );
+    if (conversations.length > 0) {
+      return res.status(201).json({
+        conversations,
+      });
+    }
+    res.status(200).json({
+      message: "Conversation Not Found.",
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(404).json({
+      message: "Server Error Found.",
+      error: err,
+    });
+  }
+};
+
 export const sendMessage = async (
   req: IRequest,
   res: Response,
@@ -144,7 +172,8 @@ export const sendMessage = async (
     );
     const msg: IMessage = {
       authors: authors,
-      readBy: [userId as string],
+      // unreadFor: authors.filter((at) => at !== userId),
+      unreadFor: authors,
       conversationId: conversation._id,
       sender: userId,
       text,
@@ -179,6 +208,13 @@ export const getConversationMessage = async (
     const userId = req.userId;
     const conversationId = req.params.conversationId;
 
+    const updateMessage = await Message.updateMany(
+      { conversationId: conversationId },
+      {
+        $pull: { unreadFor: userId },
+      }
+    );
+
     const messages = await Message.find({
       $and: [
         {
@@ -197,7 +233,7 @@ export const getConversationMessage = async (
           lastName: 1,
         },
       })
-      .sort({ updatedAt: -1 });
+      .sort({ timestamp: -1 });
 
     if (messages.length > 0) {
       return res.status(201).json({

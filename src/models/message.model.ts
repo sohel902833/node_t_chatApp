@@ -11,7 +11,7 @@ export interface IMessage {
   text?: string;
   authors: Types.ObjectId[] | string[];
   sender?: Types.ObjectId | string;
-  readBy: Types.ObjectId[] | string[];
+  unreadFor: Types.ObjectId[] | string[];
   images?: [
     {
       _id?: string;
@@ -19,8 +19,9 @@ export interface IMessage {
       fileName: string;
     }
   ];
-  timestamp?: number;
+  timestamp?: Date;
   unsent?: boolean;
+  replideMessage?: string;
 }
 
 const MessageSchema = new Schema<IMessage>(
@@ -32,6 +33,12 @@ const MessageSchema = new Schema<IMessage>(
     },
     text: String,
     authors: [
+      {
+        type: Types.ObjectId,
+        ref: USER_MODEL_NAME,
+      },
+    ],
+    unreadFor: [
       {
         type: Types.ObjectId,
         ref: USER_MODEL_NAME,
@@ -54,9 +61,13 @@ const MessageSchema = new Schema<IMessage>(
       },
     ],
     timestamp: {
-      type: Number,
-      default: new Date().getTime(),
+      type: Date,
+      default: new Date(),
       required: true,
+    },
+    replideMessage: {
+      type: Types.ObjectId,
+      ref: MESSAGE_MODEL_NAME,
     },
   },
   {
