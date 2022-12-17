@@ -1,5 +1,5 @@
 import { NextFunction, Response } from "express";
-import { USER_MODEL_NAME } from "../../models/modelConfig";
+import { MESSAGE_MODEL_NAME, USER_MODEL_NAME } from "../../models/modelConfig";
 import {
   getConversation,
   getMessage,
@@ -8,13 +8,10 @@ import {
   insertMessage,
   setLastMessageInConversation,
 } from "../../services/conversation/conversation.service";
-import { userPublicValue } from "../user/userConfig";
-import Conversation, {
-  IConversation,
-  IParticipent,
-} from "./../../models/conversation.model";
+import { IConversation, IParticipent } from "./../../models/conversation.model";
 import Message, { IMessage } from "./../../models/message.model";
 import { IRequest } from "./../../types/express/index.d";
+import { messagePublicValue } from "./messageConfig";
 
 export const createConversation = async (
   req: IRequest,
@@ -83,42 +80,7 @@ export const createConversation = async (
     });
   }
 };
-
 export const getMyConversations = async (
-  req: IRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const userId = req.userId;
-    const conversations = await Conversation.find({
-      "participents.participent": userId,
-    })
-      .populate({
-        path: "participents.participent",
-        model: USER_MODEL_NAME,
-        select: userPublicValue,
-      })
-      .populate("lastMessage", userPublicValue)
-      .sort({ updatedAt: -1 });
-
-    if (conversations.length > 0) {
-      return res.status(201).json({
-        conversations,
-      });
-    }
-    res.status(200).json({
-      message: "Conversation Not Found.",
-    });
-  } catch (err) {
-    res.status(404).json({
-      message: "Server Error Found.",
-      error: err,
-    });
-  }
-};
-
-export const getMyConversationsV2 = async (
   req: IRequest,
   res: Response,
   next: NextFunction
@@ -153,7 +115,7 @@ export const sendMessage = async (
   try {
     const userId = req.userId;
     const conversationId = req.params.conversationId;
-    const { text } = req.body;
+    const { text, replideMessage } = req.body;
 
     if (!text) {
       return res.status(200).json({
@@ -172,11 +134,11 @@ export const sendMessage = async (
     );
     const msg: IMessage = {
       authors: authors,
-      // unreadFor: authors.filter((at) => at !== userId),
-      unreadFor: authors,
+      unreadFor: authors.filter((at) => at !== userId),
       conversationId: conversation._id,
       sender: userId,
       text,
+      replideMessage: replideMessage ? replideMessage : "",
     };
 
     //save message
@@ -232,6 +194,11 @@ export const getConversationMessage = async (
           firstName: 1,
           lastName: 1,
         },
+      })
+      .populate({
+        path: "replideMessage",
+        model: MESSAGE_MODEL_NAME,
+        select: messagePublicValue,
       })
       .sort({ timestamp: -1 });
 
