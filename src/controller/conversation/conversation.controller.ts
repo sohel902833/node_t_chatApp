@@ -1,4 +1,5 @@
 import { NextFunction, Response } from "express";
+import { Types } from "mongoose";
 import { MESSAGE_MODEL_NAME, USER_MODEL_NAME } from "../../models/modelConfig";
 import {
   getConversation,
@@ -8,11 +9,13 @@ import {
   insertMessage,
   setLastMessageInConversation,
 } from "../../services/conversation/conversation.service";
-import { IConversation, IParticipent } from "./../../models/conversation.model";
+import Conversation, {
+  IConversation,
+  IParticipent,
+} from "./../../models/conversation.model";
 import Message, { IMessage } from "./../../models/message.model";
 import { IRequest } from "./../../types/express/index.d";
 import { messagePublicValue } from "./messageConfig";
-
 export const createConversation = async (
   req: IRequest,
   res: Response,
@@ -24,6 +27,7 @@ export const createConversation = async (
     if (!participents) {
       return res.status(200).json({
         message: "Participent not found.",
+        success: false,
       });
     }
     let groupChat = false;
@@ -37,6 +41,7 @@ export const createConversation = async (
     if (filteredParticipent.length === 0) {
       return res.status(200).json({
         message: "Participent Not Found.May You Select You In Participent",
+        success: false,
       });
     }
     //participent exists ,, check is it group chat or single
@@ -46,10 +51,28 @@ export const createConversation = async (
       if (!groupName) {
         return res.status(200).json({
           message: "Enter Group Name",
+          success: false,
         });
       }
       groupChat = true;
     }
+    //check conversation already exists with this user
+    if (!groupChat) {
+      const prevParticipent = await Conversation.findOne({
+        $and: [
+          { "participents.participent": userId },
+          { "participents.participent": filteredParticipent[0] },
+        ],
+      });
+      if (prevParticipent) {
+        return res.status(200).json({
+          message: "Conversation Already Exists",
+          conversation: prevParticipent,
+          success: true,
+        });
+      }
+    }
+
     //push current user to the participent
     filteredParticipent.push(userId as string);
     //generate participents
@@ -72,6 +95,7 @@ export const createConversation = async (
 
     return res.status(201).json({
       message: "Conversation Created.",
+      success: true,
     });
   } catch (err) {
     res.status(404).json({
@@ -138,7 +162,7 @@ export const sendMessage = async (
       conversationId: conversation._id,
       sender: userId,
       text,
-      replideMessage: replideMessage ? replideMessage : "",
+      replideMessage: replideMessage && new Types.ObjectId(replideMessage),
     };
 
     //save message

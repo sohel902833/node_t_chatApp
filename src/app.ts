@@ -1,3 +1,4 @@
+import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import path from "path";
@@ -10,6 +11,8 @@ import { router as userRouter } from "./routes/user.routes";
 const app = express();
 dotenv.config();
 connectDb();
+//ignore cors policy
+app.use(cors());
 //to parse json data
 app.use(express.json());
 app.use("/uploads/", express.static(path.join(__dirname, "uploads")));

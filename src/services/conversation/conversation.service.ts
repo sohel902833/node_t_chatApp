@@ -3,6 +3,7 @@ import { messagePublicValue } from "../../controller/conversation/messageConfig"
 import Conversation, { IConversation } from "../../models/conversation.model";
 import Message, { IMessage } from "../../models/message.model";
 import { MESSAGE_MODEL_NAME, USER_MODEL_NAME } from "../../models/modelConfig";
+import { userPublicValue } from "./../../controller/user/userConfig";
 
 export const insertConversation = async (conv: IConversation) => {
   const newConversation = new Conversation(conv);
@@ -52,12 +53,20 @@ export const getMyConversationsWithUnreadCount = async (userId: string) => {
         as: "messages",
       },
     },
-
     {
       $lookup: {
         from: USER_MODEL_NAME,
-        localField: "participents.participent",
-        foreignField: "_id",
+        let: { participentId: "$participents.participent" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $in: ["$_id", "$$participentId"] },
+            },
+          },
+          {
+            $project: userPublicValue,
+          },
+        ],
         as: "participents",
       },
     },
@@ -65,7 +74,6 @@ export const getMyConversationsWithUnreadCount = async (userId: string) => {
       $lookup: {
         from: MESSAGE_MODEL_NAME,
         let: { id: "$lastMessage" },
-
         pipeline: [
           {
             $match: {
@@ -79,7 +87,6 @@ export const getMyConversationsWithUnreadCount = async (userId: string) => {
         as: "lastMessage",
       },
     },
-    { $unwind: { path: "$lastMessage" } },
     {
       $project: {
         unreadCount: {
@@ -94,7 +101,7 @@ export const getMyConversationsWithUnreadCount = async (userId: string) => {
         timestamp: 1,
         createdAt: 1,
         updatedAt: 1,
-        lastMessage: 1,
+        lastMessage: { $arrayElemAt: ["$lastMessage", 0] },
         participents: 1,
       },
     },

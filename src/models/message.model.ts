@@ -21,7 +21,7 @@ export interface IMessage {
   ];
   timestamp?: Date;
   unsent?: boolean;
-  replideMessage?: string;
+  replideMessage?: Types.ObjectId;
 }
 
 const MessageSchema = new Schema<IMessage>(

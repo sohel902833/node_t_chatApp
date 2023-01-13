@@ -31,7 +31,12 @@ export const signupUser = async (
     //check email already exists or not
     const prevUser = await User.findOne({ email: email });
     if (prevUser) {
-      return res.status(200).json({ message: "User Already Exists." });
+      return res.status(200).json({
+        message: "User Already Exists.",
+        errors: {
+          email: "Email Already Exists",
+        },
+      });
     }
 
     const registeredBy = email ? EMAIL_REGISTERED_TYPE : PHONE_REGISTEREDE_TYPE;
@@ -349,6 +354,7 @@ export const forgetPassword = async (
     if (!user) {
       return res.status(200).json({
         message: "User Doesn't Exists.",
+        success: false,
       });
     }
 
@@ -381,6 +387,7 @@ export const forgetPassword = async (
 
       return res.status(201).json({
         message: "Verify Code Sent To Your Email.",
+        success: true,
       });
     } else {
       //need to create to the database
@@ -388,6 +395,7 @@ export const forgetPassword = async (
       const savedCode = await newVerifyCode.save();
       return res.status(201).json({
         message: "Verify Code Sent To Your Email.",
+        success: true,
       });
     }
   } catch (err) {
@@ -409,6 +417,7 @@ export const resetPasswordByVerifyCode = async (
     if (!email || !code || !newPassword) {
       return res.status(200).json({
         message: "Put All Info",
+        success: false,
       });
     }
 
@@ -418,6 +427,7 @@ export const resetPasswordByVerifyCode = async (
     if (!user) {
       return res.status(200).json({
         message: "User Not Found.",
+        success: false,
       });
     }
 
@@ -425,6 +435,7 @@ export const resetPasswordByVerifyCode = async (
     if (!verifyCode || verifyCode.code !== Number(code)) {
       return res.status(200).json({
         message: "Verify Code Doesn't Matched.",
+        success: false,
       });
     }
     //code matched
@@ -441,10 +452,12 @@ export const resetPasswordByVerifyCode = async (
 
     res.status(201).json({
       message: "Password Updated Successful.",
+      success: true,
     });
   } catch (err) {
     res.status(404).json({
       message: "Session timeout.",
+      success: false,
       error: err,
     });
   }
