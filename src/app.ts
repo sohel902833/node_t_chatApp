@@ -9,6 +9,7 @@ import { router as conversationRouter } from "./routes/conversation.routes";
 import { router as userRouter } from "./routes/user.routes";
 
 const app = express();
+
 dotenv.config();
 connectDb();
 //ignore cors policy

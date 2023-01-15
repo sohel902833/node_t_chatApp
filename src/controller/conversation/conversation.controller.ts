@@ -1,7 +1,10 @@
 import { NextFunction, Response } from "express";
 import { Types } from "mongoose";
+import { SocketEvent } from "../../lib/socketEvents";
 import { MESSAGE_MODEL_NAME, USER_MODEL_NAME } from "../../models/modelConfig";
+import { io } from "../../server";
 import {
+  fetchSingleConversation,
   getConversation,
   getMessage,
   getMyConversationsWithUnreadCount,
@@ -130,6 +133,39 @@ export const getMyConversations = async (
     });
   }
 };
+export const getSingleConversation = async (
+  req: IRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.userId;
+    const conversationId = req.params.conversationId;
+
+    const conversations = await fetchSingleConversation(conversationId);
+
+    //check conversation found or not
+    if (conversations?.length === 0) {
+      return res.status(200).json({
+        message: "Conversation Not Found.",
+        success: false,
+        notFound: true,
+      });
+    }
+    //conversation is there
+    res.status(200).json({
+      message: "Conversation Found.",
+      success: true,
+      conversation: conversations[0],
+    });
+  } catch (err) {
+    return res.status(200).json({
+      message: "Conversation Not Found.",
+      success: false,
+      notFound: true,
+    });
+  }
+};
 
 export const sendMessage = async (
   req: IRequest,
@@ -172,12 +208,34 @@ export const sendMessage = async (
       conversationId,
       savedMessage._id.toString()
     );
-
+    const newMessage = await Message.findOne({
+      _id: savedMessage?._id?.toString(),
+    })
+      .populate({
+        path: "sender",
+        model: USER_MODEL_NAME,
+        select: {
+          firstName: 1,
+          lastName: 1,
+        },
+      })
+      .populate({
+        path: "replideMessage",
+        model: MESSAGE_MODEL_NAME,
+        select: messagePublicValue,
+      });
+    //broadcust message
+    io.sockets.emit(SocketEvent.MESSAGE_SENT, {
+      receivers: authors,
+      meta: newMessage,
+    });
     //done
     res.status(201).json({
       message: "Message Sent.",
+      data: newMessage,
     });
   } catch (err) {
+    console.log("Error", err);
     res.status(404).json({
       message: "Server Error Found.",
       error: err,
@@ -224,7 +282,7 @@ export const getConversationMessage = async (
         model: MESSAGE_MODEL_NAME,
         select: messagePublicValue,
       })
-      .sort({ timestamp: -1 });
+      .sort({ createdAt: 1 });
 
     if (messages.length > 0) {
       return res.status(201).json({

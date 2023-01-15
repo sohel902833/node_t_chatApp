@@ -108,3 +108,41 @@ export const getMyConversationsWithUnreadCount = async (userId: string) => {
     { $sort: { updatedAt: -1 } },
   ]);
 };
+
+export const fetchSingleConversation = async (conversationId: string) => {
+  return await Conversation.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(conversationId),
+      },
+    },
+    {
+      $lookup: {
+        from: USER_MODEL_NAME,
+        let: { participentId: "$participents.participent" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $in: ["$_id", "$$participentId"] },
+            },
+          },
+          {
+            $project: userPublicValue,
+          },
+        ],
+        as: "participents",
+      },
+    },
+    {
+      $project: {
+        groupChat: 1,
+        groupName: 1,
+        timestamp: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        participents: 1,
+      },
+    },
+    { $sort: { updatedAt: -1 } },
+  ]);
+};

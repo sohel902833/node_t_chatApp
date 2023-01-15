@@ -6,6 +6,11 @@ export const router = Router();
 router.post("/", authGard(), conversationController.createConversation);
 router.get("/", authGard(), conversationController.getMyConversations);
 router.get(
+  "/:conversationId",
+  authGard(),
+  conversationController.getSingleConversation
+);
+router.get(
   "/message/:conversationId",
   authGard(),
   conversationController.getConversationMessage
