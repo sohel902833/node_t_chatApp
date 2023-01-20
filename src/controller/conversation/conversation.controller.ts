@@ -315,13 +315,21 @@ export const deleteConversation = async (
         $pull: { authors: userId },
       }
     );
+    io.sockets.emit(SocketEvent.DELETE_CONVERSATION, {
+      receivers: userId,
+      meta: {
+        conversationId,
+      },
+    });
     return res.status(201).json({
       message: "Conversation Deleted.",
+      success: true,
     });
   } catch (err) {
-    res.status(404).json({
+    res.status(200).json({
       message: "Server Error Found.",
       error: err,
+      success: false,
     });
   }
 };
@@ -341,6 +349,12 @@ export const unsentMessage = async (
       });
     }
     //message exists and authorized user
+    if (message?.sender?.toString() !== userId) {
+      return res.status(200).json({
+        message: "You Are Not Authorized To Perform This Action",
+        success: false,
+      });
+    }
 
     const updateMessage = await Message.updateOne(
       { _id: messageId },
@@ -351,8 +365,16 @@ export const unsentMessage = async (
       }
     );
 
+    io.sockets.emit(SocketEvent.UNSEND_MESSAGE, {
+      receivers: message?.authors,
+      meta: {
+        conversationId: message?.conversationId,
+        messageId: message?._id,
+      },
+    });
     return res.status(201).json({
       message: "Message Removed.",
+      success: true,
     });
   } catch (err) {
     res.status(404).json({
@@ -371,7 +393,7 @@ export const removeForMe = async (
     const messageId = req.params.messageId;
 
     const message = await getMessage(messageId);
-    if (!message || message?.sender?.toString() !== userId) {
+    if (!message) {
       return res.status(200).json({
         message: "Message Not Found.",
       });
@@ -383,6 +405,13 @@ export const removeForMe = async (
         $pull: { authors: userId },
       }
     );
+    io.sockets.emit(SocketEvent.REMOVE_MESSAGE_FOR_ME, {
+      receivers: userId,
+      meta: {
+        messageId,
+        conversationId: message?.conversationId,
+      },
+    });
 
     return res.status(201).json({
       message: "Message Removed For You.",
