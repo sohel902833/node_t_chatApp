@@ -1,7 +1,7 @@
 node_modules
 .env
 uploads
-
+build
 
 //kill a port user
 sudo fuser -k 5000/tcp

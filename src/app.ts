@@ -18,6 +18,12 @@ app.use(cors());
 app.use(express.json());
 app.use("/uploads/", express.static(path.join(__dirname, "uploads")));
 
+app.get("/health", (req: any, res: any) => {
+  res.status(200).json({
+    message: "App running fine",
+  });
+});
+
 app.use("/auth", authRouter);
 app.use("/user", userRouter);
 app.use("/conversation", conversationRouter);
