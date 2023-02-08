@@ -23,6 +23,9 @@ export interface IUser {
   verified: boolean;
   tokens?: IToken[];
   registeredBy?: string;
+  online?: boolean;
+  lastActive?: string;
+  subscription?: any;
 }
 
 export interface IToken {
@@ -83,6 +86,14 @@ const userSchema = new Schema<IUser>(
       default: false,
       required: true,
     },
+    online: {
+      type: Boolean,
+      default: false,
+    },
+    lastActive: {
+      type: String,
+      default: new Date(),
+    },
     tokens: [
       {
         device: {
@@ -98,6 +109,11 @@ const userSchema = new Schema<IUser>(
       required: true,
       default: EMAIL_REGISTERED_TYPE,
       enum: [EMAIL_REGISTERED_TYPE, PHONE_REGISTEREDE_TYPE],
+    },
+    subscription: {
+      type: String,
+      required: false,
+      default: "",
     },
   },
   {

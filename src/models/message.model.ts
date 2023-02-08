@@ -31,7 +31,11 @@ const MessageSchema = new Schema<IMessage>(
       ref: CONVERSATION_MODEL_NAME,
       required: true,
     },
-    text: String,
+    text: {
+      type: String,
+      required: false,
+      default: "",
+    },
     authors: [
       {
         type: Types.ObjectId,

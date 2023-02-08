@@ -1,7 +1,9 @@
 import { NextFunction, Response } from "express";
 import { Types } from "mongoose";
+import { sendPushNotification } from "../../lib/handlePushNotification";
 import { SocketEvent } from "../../lib/socketEvents";
 import { MESSAGE_MODEL_NAME, USER_MODEL_NAME } from "../../models/modelConfig";
+import { IUser } from "../../models/user.model";
 import { io } from "../../server";
 import {
   fetchSingleConversation,
@@ -12,6 +14,7 @@ import {
   insertMessage,
   setLastMessageInConversation,
 } from "../../services/conversation/conversation.service";
+import { getAllUserSubscription } from "../../services/user/user.service";
 import Conversation, {
   IConversation,
   IParticipent,
@@ -175,9 +178,9 @@ export const sendMessage = async (
   try {
     const userId = req.userId;
     const conversationId = req.params.conversationId;
-    const { text, replideMessage } = req.body;
+    const { text, replideMessage, images } = req.body;
 
-    if (!text) {
+    if (!text && !images) {
       return res.status(200).json({
         message: "No Message Found",
       });
@@ -199,6 +202,10 @@ export const sendMessage = async (
       sender: userId,
       text,
       replideMessage: replideMessage && new Types.ObjectId(replideMessage),
+      images:
+        images?.length > 0
+          ? images.map((img: any) => ({ ...img, url: img?.uri }))
+          : [],
     };
 
     //save message
@@ -230,6 +237,15 @@ export const sendMessage = async (
       meta: newMessage,
     });
     //done
+    //sent notification
+    sendNotification(
+      authors?.filter((id) => id !== userId),
+      text,
+      images,
+      //@ts-ignore
+      newMessage?.sender as IUser
+    );
+
     res.status(201).json({
       message: "Message Sent.",
       data: newMessage,
@@ -420,6 +436,39 @@ export const removeForMe = async (
     res.status(404).json({
       message: "Server Error Found.",
       error: err,
+    });
+  }
+};
+
+export const sendNotification = async (
+  users: string[],
+  message: string,
+  images: any[],
+  sender: IUser
+) => {
+  const title = `New Message From ${sender?.firstName} ${sender?.lastName}`;
+  let body = "New Message";
+  if (message) {
+    body = message;
+  } else if (images?.length > 0) {
+    body = `${sender?.firstName} ${sender?.lastName} Sent ${images?.length} Images`;
+  }
+
+  const allReceivers = await getAllUserSubscription(users);
+  if (allReceivers?.length > 0) {
+    console.log(allReceivers, sender?._id);
+    allReceivers?.forEach(async (user) => {
+      const subscription = JSON.parse(user?.subscription);
+      if (subscription?.endpoint) {
+        await sendPushNotification(
+          subscription,
+          JSON.stringify({
+            message: message,
+            title: title,
+            body,
+          })
+        );
+      }
     });
   }
 };
