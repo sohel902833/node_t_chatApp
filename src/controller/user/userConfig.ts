@@ -11,3 +11,11 @@ export const userPublicValue = {
   online: 1,
   lastActive: 1,
 };
+
+export const likeUserPublicValue = {
+  firstName: 1,
+  lastName: 1,
+  email: 1,
+  phone: 1,
+  avatar: 1,
+};

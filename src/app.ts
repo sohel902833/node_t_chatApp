@@ -6,6 +6,7 @@ import { connectDb } from "./db";
 import { router as attatchmentRouter } from "./routes/attatchment.routes";
 import { router as authRouter } from "./routes/auth.routes";
 import { router as conversationRouter } from "./routes/conversation.routes";
+import { router as postRouter } from "./routes/post.routes";
 import { router as userRouter } from "./routes/user.routes";
 
 const app = express();
@@ -28,6 +29,7 @@ app.use("/auth", authRouter);
 app.use("/user", userRouter);
 app.use("/conversation", conversationRouter);
 app.use("/attatchment", attatchmentRouter);
+app.use("/post", postRouter);
 
 //routers wil go here
 
