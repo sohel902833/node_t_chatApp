@@ -9,6 +9,8 @@ export const postPublicValue = {
   createdAt: 1,
   updatedAt: 1,
   matched_likes: 1,
+  comments: 1,
 };
 
 export const TOTAL_LIKE_WITH_SINGLE_POST = 2;
+export const TOTAL_COMMENT_LIMIT_WITH_SINGLE_POST = 5;

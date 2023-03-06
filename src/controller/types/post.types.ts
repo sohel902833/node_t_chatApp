@@ -20,3 +20,11 @@ export interface ILikesModelType {
   user?: Types.ObjectId | string;
   reaction?: "like" | "love" | "react" | "haha" | "angry";
 }
+export interface ICommentModelType {
+  _id?: Types.ObjectId | string;
+  post?: Types.ObjectId | string;
+  user?: Types.ObjectId | string;
+  parentComment?: string | Types.ObjectId;
+  childComments?: string[] | Types.ObjectId[];
+  text: string;
+}

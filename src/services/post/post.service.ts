@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import {
   postPublicValue,
+  TOTAL_COMMENT_LIMIT_WITH_SINGLE_POST,
   TOTAL_LIKE_WITH_SINGLE_POST,
 } from "../../controller/post/config";
 import {
@@ -14,6 +15,7 @@ import {
 import Like from "../../models/like.model";
 import { LIKE_MODEL_NAME, USER_MODEL_NAME } from "../../models/modelConfig";
 import Post from "../../models/post.model";
+import { COMMENT_MODEL_NAME } from "./../../models/modelConfig";
 
 export const findSinglePost = async (postId: string) => {
   return Post.findOne({ _id: postId });
@@ -100,6 +102,36 @@ export const fetchAllPost = async (
     },
     {
       $lookup: {
+        from: COMMENT_MODEL_NAME,
+        let: {
+          id: "$_id",
+        },
+        pipeline: [
+          {
+            $match: {
+              $and: [
+                { $expr: { $eq: ["$$id", "$post"] } },
+                {
+                  $or: [
+                    { parentComment: { $exists: false } },
+                    { parentComment: { $eq: "" } },
+                  ],
+                },
+              ],
+              // $expr: { $eq: ["$$id", "$post"] },
+            },
+          },
+
+          {
+            $limit: TOTAL_COMMENT_LIMIT_WITH_SINGLE_POST,
+          },
+          { $sort: { updatedAt: 1 } },
+        ],
+        as: "comments",
+      },
+    },
+    {
+      $lookup: {
         from: USER_MODEL_NAME, // The name of the collection to join with
         let: {
           id: "$_id",
@@ -149,5 +181,6 @@ export const fetchAllPost = async (
     });
   }
 
+  //@ts-ignore
   return Post.aggregate(postPipeline);
 };

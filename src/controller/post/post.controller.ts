@@ -3,6 +3,12 @@ import { getPaginationProperty } from "../../lib/pagination";
 import Like from "../../models/like.model";
 import Post from "../../models/post.model";
 import {
+  addNewChildComment,
+  createComment,
+  editComment,
+  fetchAllComments,
+} from "../../services/post/comment.service";
+import {
   createLike,
   createPost,
   editLike,
@@ -13,7 +19,11 @@ import {
   removePost,
 } from "../../services/post/post.service";
 import { IRequest } from "../../types/express";
-import { ILikesModelType, IPostModelType } from "../types/post.types";
+import {
+  ICommentModelType,
+  ILikesModelType,
+  IPostModelType,
+} from "../types/post.types";
 import { userPublicValue } from "./../user/userConfig";
 
 export const createNewPost = async (req: IRequest, res: Response) => {
@@ -227,6 +237,80 @@ export const setLikeToPost = async (req: IRequest, res: Response) => {
   } catch (err) {
     res.status(404).json({
       message: "Server Error Found",
+    });
+  }
+};
+export const commentToPost = async (req: IRequest, res: Response) => {
+  try {
+    const { postId, text, parentCommentId } = req.body;
+    if (!postId && !text) {
+      return res.status(404).json({
+        success: false,
+        message: "Nothing Found For Create Comment",
+      });
+    }
+    const newComment: ICommentModelType = {
+      text: text,
+      post: postId,
+      user: req.userId,
+      parentComment: parentCommentId,
+    };
+    const createdComment = await createComment(newComment);
+    //@ts-ignore
+    const childCommentId = createdComment?._id?.toString();
+    //update parent comment
+    if (parentCommentId) {
+      const addedNewChildComment = await addNewChildComment(
+        parentCommentId,
+        childCommentId
+      );
+    }
+    return res.status(201).json({
+      message: "Comment Created.",
+      meta: createdComment,
+    });
+  } catch (err) {
+    res.status(404).json({
+      message: "Server Error Found.",
+    });
+  }
+};
+export const getComments = async (req: IRequest, res: Response) => {
+  try {
+    const postId = req.params.postId;
+    const parentComment = req.query.parentComment;
+    const comments = await fetchAllComments(
+      postId,
+      parentComment ? parentComment.toString() : ""
+    );
+    res.status(200).json({
+      message: "All Comments",
+      comments,
+    });
+  } catch (err) {
+    res.status(404).json({
+      message: "Server Error Found.",
+    });
+  }
+};
+
+export const updateComment = async (req: IRequest, res: Response) => {
+  try {
+    const commentId = req.params.commentId;
+    const text = req.body.text;
+    if (!text) {
+      return res.status(200).json({
+        message: "Nothing Found for Update",
+      });
+    }
+    const editedComment = await editComment({ text }, commentId);
+
+    res.status(200).json({
+      message: "Comment Updated",
+    });
+  } catch (err) {
+    res.status(404).json({
+      message: "Server Error Found.",
     });
   }
 };
